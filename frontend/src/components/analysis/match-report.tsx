@@ -111,6 +111,14 @@ function RequirementMatchRow({ requirement }: RequirementMatchRowProps) {
                         <Badge className={cn("rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider", getCategoryColor(requirement.category))}>
                             {t(getCategoryLabel(requirement.category) as any)}
                         </Badge>
+                        {requirement.priority && (
+                            <Badge className={cn(
+                                "rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider",
+                                requirement.priority === 'Mandatory' ? "bg-red-50 text-red-600 border-red-100" : "bg-slate-100 text-slate-600 border-slate-200"
+                            )}>
+                                {requirement.priority}
+                            </Badge>
+                        )}
                         {requirement.page_number && (
                             <span className="text-[10px] font-black text-surface-400 uppercase tracking-widest bg-surface-100 px-2 py-0.5 rounded-lg">
                                 {t('page')} {requirement.page_number}

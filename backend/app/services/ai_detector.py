@@ -366,7 +366,7 @@ def remove_ai_markers(text: str) -> Tuple[str, int]:
     count = 0
     
     for word, replacement in ai_word_replacements.items():
-        pattern = re.compile(r'\b' + re.escape(word) + r'\\b', re.IGNORECASE)
+        pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
         if pattern.search(result):
             result = pattern.sub(replacement, result)
             count += 1
@@ -416,7 +416,7 @@ def humanize_text(text: str, intensity: str = "balanced") -> Tuple[str, float, f
     if lang != "en":
         print(f"[HUMANIZE] Non-English text detected ({lang}). Using LLM fallback.")
         try:
-            headers = {"Authorization": f"Bearer {settings.mistral_api_key}"}
+            headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
             
             # Map language codes to names for the prompt
             lang_map = {
@@ -432,14 +432,15 @@ Ensure the tone is natural and professional.
 TEXT TO HUMANIZE:
 {text}
 
-HUMANIZED TEXT:"""
+HUMANIIZED TEXT:"""
             
+            url = f"{settings.llm_api_url.rstrip('/')}/chat/completions"
             with httpx.Client() as client:
                 response = client.post(
-                    "https://api.mistral.ai/v1/chat/completions",
+                    url,
                     headers=headers,
                     json={
-                        "model": "mistral-tiny",
+                        "model": settings.llm_model,
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.7
                     },

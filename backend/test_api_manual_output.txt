@@ -1,0 +1,5 @@
+Testing Groq with URL: https://api.groq.com/openai/v1
+Model: llama-3.3-70b-versatile
+Key Prefix: gsk_E8BDwg...
+Status Code: 200
+Success! Response: OK

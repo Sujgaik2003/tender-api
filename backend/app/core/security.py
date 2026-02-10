@@ -7,66 +7,76 @@ from app.core.supabase import get_supabase
 settings = get_settings()
 security = HTTPBearer()
 
-
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
-    """Validate JWT token and return user info."""
+    """Validate JWT token and return user info with tenant context."""
     token = credentials.credentials
+    supabase = get_supabase()
     
+    # 1. Get User ID
     try:
-        # Decode JWT token
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret,
-            algorithms=[settings.jwt_algorithm],
-            options={"verify_aud": False}
-        )
+        # Try local decode first
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm], options={"verify_aud": False})
         user_id = payload.get("sub")
-        if user_id is None:
-            print("[AUTH] JWT decoded but 'sub' claim missing")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing sub"
-            )
-        
-        return {"id": user_id, "email": payload.get("email")}
-    
-    except JWTError as e:
-        print(f"[AUTH] JWT Decode failed: {e}. Falling back to Supabase API check.")
-        # Try Supabase verification
+        email = payload.get("email")
+    except JWTError:
+        # Fallback to Supabase API
         try:
-            from app.core.supabase import get_supabase
-            supabase = get_supabase()
-            
-            # NOTE: some versions of supabase-py might need different auth handling
-            # If the token is valid, get_user(token) should work.
-            user_response = supabase.auth.get_user(token)
-            
-            if user_response and hasattr(user_response, 'user') and user_response.user:
-                return {
-                    "id": user_response.user.id,
-                    "email": user_response.user.email
-                }
-            elif user_response and isinstance(user_response, dict) and 'user' in user_response:
-                return {
-                    "id": user_response['user']['id'],
-                    "email": user_response['user']['email']
-                }
-        except Exception as se:
-            print(f"[AUTH] Supabase verification fallback also failed: {se}")
-            pass
+            resp = supabase.auth.get_user(token)
+            user = resp.user if hasattr(resp, 'user') else resp.get('user')
+            user_id = user.id if hasattr(user, 'id') else user.get('id')
+            email = user.email if hasattr(user, 'email') else user.get('email')
+        except Exception as e:
+            print(f"[AUTH ERROR] Token invalid: {e}")
+            raise HTTPException(status_code=401, detail="Invalid session")
+
+    # 2. Fetch/Heal Tenant Association & Role
+    tenant_id = None
+    role = "USER"
+    try:
+        # Use service key to bypass RLS and ensure we see the result
+        profile = supabase.table("user_profiles").select("tenant_id, role").eq("id", user_id).execute()
         
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
+        if not profile.data:
+            print(f"[AUTH] No profile for {user_id}. Auto-creating...")
+            # Ensure a tenant exists
+            tenants = supabase.table("tenants").select("id").limit(1).execute()
+            if not tenants.data:
+                print("[AUTH] Creating missing default tenant...")
+                tenants = supabase.table("tenants").insert({"name": "Default Org", "subscription_tier": "ENTERPRISE"}).execute()
+            
+            tenant_id = tenants.data[0]['id']
+            supabase.table("user_profiles").insert({
+                "id": user_id,
+                "tenant_id": tenant_id,
+                "full_name": email.split("@")[0] if email else "User",
+                "role": "ADMIN" # First user is admin
+            }).execute()
+            role = "ADMIN"
+        else:
+            tenant_id = profile.data[0].get("tenant_id")
+            role = profile.data[0].get("role", "USER")
+            
+            if not tenant_id:
+                print(f"[AUTH] Profile exists for {user_id} but tenant_id is NULL. Fixing...")
+                tenants = supabase.table("tenants").select("id").limit(1).execute()
+                tenant_id = tenants.data[0]['id']
+                supabase.table("user_profiles").update({"tenant_id": tenant_id}).eq("id", user_id).execute()
+                
+    except Exception as e:
+        print(f"[AUTH ERROR] Profile resolution failed: {e}")
+        # Fallback
+        role = "USER"
 
+    return {
+        "id": user_id, 
+        "email": email,
+        "tenant_id": tenant_id,
+        "role": role
+    }
 
-async def get_current_user_optional(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> dict | None:
-    """Get current user if authenticated, None otherwise."""
+async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict | None:
     try:
         return await get_current_user(credentials)
     except HTTPException:

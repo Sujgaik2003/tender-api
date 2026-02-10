@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     supabase_service_key: str
     supabase_anon_key: str
     
-    # Mistral LLM
-    mistral_api_url: str = "https://api.mistral.ai"
-    mistral_api_key: Optional[str] = None
-    mistral_model: str = "mistral-tiny"
+    # LLM Settings (Groq/Grok/Mistral)
+    llm_api_url: str = "https://api.groq.com/openai/v1"
+    llm_api_key: Optional[str] = None
+    llm_model: str = "llama-3.1-70b-versatile"
     
     # FAISS
     faiss_index_path: str = "./data/faiss.index"
@@ -22,11 +22,13 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = False
+    tesseract_path: Optional[str] = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     
     # Security
     jwt_secret: str = "development-secret-key"
     jwt_algorithm: str = "HS256"
     
+
     # AI Content Control
     max_ai_percentage: float = 30.0
     max_regeneration_attempts: int = 3
@@ -36,6 +38,5 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
 
-@lru_cache()
 def get_settings() -> Settings:
     return Settings()

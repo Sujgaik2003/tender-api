@@ -14,6 +14,9 @@ pdfplumber
 PyMuPDF
 python-docx
 Pillow
+pytesseract
+opencv-python
+numpy
 
 # NLP & ML
 sentence-transformers
@@ -22,9 +25,16 @@ transformers
 nltk
 langdetect
 
-# HTTP
+# HTTP & Scraping
 httpx
 aiohttp
+beautifulsoup4
+playwright
+lxml
+
+# Workflow & Async
+celery[redis]
+redis
 
 # Utilities
 tenacity

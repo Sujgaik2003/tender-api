@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AuthLayout } from '../../../components/layout/auth-layout';
 import { createClient } from '@/lib/supabase/client';
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Building2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +18,7 @@ export default function SignUpPage() {
     const supabase = createClient();
 
     const [fullName, setFullName] = useState('');
+    const [orgName, setOrgName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -49,6 +50,7 @@ export default function SignUpPage() {
                 options: {
                     data: {
                         full_name: fullName,
+                        org_name: orgName
                     },
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
                 },
@@ -80,6 +82,26 @@ export default function SignUpPage() {
                             placeholder={t('fullName')}
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
+                            className={cn(
+                                "input h-12",
+                                isRtl ? "pr-12 pl-4 text-right" : "pl-12 pr-4"
+                            )}
+                            required
+                            dir={isRtl ? 'rtl' : 'ltr'}
+                        />
+                    </div>
+
+                    {/* Organization Name Input */}
+                    <div className="relative">
+                        <Building2 className={cn(
+                            "absolute top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400",
+                            isRtl ? "right-4" : "left-4"
+                        )} />
+                        <input
+                            type="text"
+                            placeholder="Organization / Company Name"
+                            value={orgName}
+                            onChange={(e) => setOrgName(e.target.value)}
                             className={cn(
                                 "input h-12",
                                 isRtl ? "pr-12 pl-4 text-right" : "pl-12 pr-4"

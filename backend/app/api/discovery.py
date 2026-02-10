@@ -1,0 +1,103 @@
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Dict, Any
+from app.core.supabase import get_supabase
+from app.services.discovery.scanner import DiscoveryScanner
+from app.services.discovery.scrapers.gem_scraper import GeMScraper
+from app.services.discovery.scrapers.mock_scraper import MockPortalScraper # Keeping mock for fallback
+
+router = APIRouter(prefix="/discovery", tags=["Discovery"])
+
+@router.post("/scan")
+async def trigger_scan(tenant_id: str):
+    """
+    Trigger a scan of all configured tender portals for a tenant asynchronously.
+    """
+    from app.worker.tasks import discovery_scan_task
+    
+    # Trigger Celery task
+    task = discovery_scan_task.delay(tenant_id)
+    
+    return {
+        "message": "Discovery scan started in background",
+        "task_id": task.id
+    }
+
+@router.get("/tenders")
+async def list_discovered_tenders(tenant_id: str, status: str = "PENDING"):
+    """
+    List discovered tenders for approval.
+    """
+    supabase = get_supabase()
+    query = supabase.table("discovered_tenders") \
+        .select("*, tender_attachments(*)") \
+        .eq("tenant_id", tenant_id)
+    
+    if status:
+        query = query.eq("status", status)
+        
+    result = query.order("match_score", desc=True).execute()
+    return result.data
+
+@router.post("/tenders/{tender_id}/approve")
+async def approve_tender(tender_id: str):
+    """
+    Approve a tender and move it to the bid placement workflow.
+    """
+    supabase = get_supabase()
+    # Update status
+    result = supabase.table("discovered_tenders") \
+        .update({"status": "APPROVED"}) \
+        .eq("id", tender_id) \
+        .execute()
+        
+    # In a real scenario, this might trigger document download and OCR pipeline
+    # For now, we just update the status as per requirement.
+    return {"message": "Tender approved for bid placement", "data": result.data}
+
+@router.post("/tenders/{tender_id}/reject")
+async def reject_tender(tender_id: str):
+    """
+    Reject/Archive a tender.
+    """
+    supabase = get_supabase()
+    result = supabase.table("discovered_tenders") \
+        .update({"status": "REJECTED"}) \
+        .eq("id", tender_id) \
+        .execute()
+        
+    return {"message": "Tender rejected", "data": result.data}
+
+@router.delete("/tenders/{tender_id}")
+async def delete_tender(tender_id: str):
+    """
+    Permanently delete a tender.
+    """
+    supabase = get_supabase()
+    result = supabase.table("discovered_tenders") \
+        .delete() \
+        .eq("id", tender_id) \
+        .execute()
+        
+    return {"message": "Tender deleted", "data": result.data}
+
+@router.get("/config")
+async def get_discovery_config(tenant_id: str):
+    supabase = get_supabase()
+    result = supabase.table("discovery_config") \
+        .select("*") \
+        .eq("tenant_id", tenant_id) \
+        .execute()
+    return result.data[0] if result.data else {}
+
+@router.post("/config")
+async def update_discovery_config(tenant_id: str, config: Dict[str, Any]):
+    supabase = get_supabase()
+    # Upsert config
+    result = supabase.table("discovery_config") \
+        .upsert({
+            "tenant_id": tenant_id,
+            **config,
+            "updated_at": "now()"
+        }) \
+        .execute()
+    return result.data

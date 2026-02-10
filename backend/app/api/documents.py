@@ -11,6 +11,7 @@ import io
 
 from app.core.supabase import get_supabase_client
 from app.core.security import get_current_user
+from app.worker.tasks import parse_document_task
 from app.schemas import (
     DocumentResponse,
     DocumentStatusResponse,
@@ -20,7 +21,6 @@ from app.schemas import (
     MatchSummary,
     MatchBreakdown,
 )
-from app.services.pipeline import process_document_async
 from app.services.exporter import get_exporter, CompanyProfile
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -31,12 +31,22 @@ async def get_documents(
     user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
 ):
-    """Get all documents for current user."""
-    result = supabase.table('documents')\
-        .select('*')\
-        .eq('user_id', user['id'])\
-        .order('created_at', desc=True)\
-        .execute()
+    """Get all documents for current user's tenant."""
+    # If no tenant_id (e.g. migration phase), fallback to user isolation or empty
+    if not user.get('tenant_id'):
+        # Fallback to private mode
+        result = supabase.table('documents')\
+            .select('*')\
+            .eq('user_id', user['id'])\
+            .order('created_at', desc=True)\
+            .execute()
+    else:
+        # Tenant mode
+        result = supabase.table('documents')\
+            .select('*')\
+            .eq('tenant_id', user['tenant_id'])\
+            .order('created_at', desc=True)\
+            .execute()
     
     return result.data
 
@@ -48,12 +58,14 @@ async def get_document(
     supabase = Depends(get_supabase_client)
 ):
     """Get document by ID."""
-    result = supabase.table('documents')\
-        .select('*')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+    query = supabase.table('documents').select('*').eq('id', document_id)
+    
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+        
+    result = query.single().execute()
     
     if not result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -68,12 +80,17 @@ async def get_document_status(
     supabase = Depends(get_supabase_client)
 ):
     """Get document processing status."""
-    result = supabase.table('documents')\
+    # Query
+    query = supabase.table('documents')\
         .select('id, status, processing_progress, error_message')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+        .eq('id', document_id)
+        
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+        
+    result = query.single().execute()
     
     if not result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -107,12 +124,17 @@ async def trigger_processing(
 ):
     """Trigger document processing."""
     # Verify ownership
-    result = supabase.table('documents')\
+    # Verify ownership
+    query = supabase.table('documents')\
         .select('id, status')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+        .eq('id', document_id)
+        
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+        
+    result = query.single().execute()
     
     if not result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -120,8 +142,8 @@ async def trigger_processing(
     if result.data['status'] not in ['UPLOADED', 'ERROR']:
         raise HTTPException(status_code=400, detail="Document already processing")
     
-    # Queue processing
-    background_tasks.add_task(process_document_async, document_id)
+    # Queue processing via Celery
+    parse_document_task.delay(document_id)
     
     return {"message": "Processing started", "document_id": document_id}
 
@@ -134,12 +156,17 @@ async def delete_document(
 ):
     """Delete document."""
     # Verify ownership
-    result = supabase.table('documents')\
+    # Verify ownership
+    query = supabase.table('documents')\
         .select('id, file_path')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+        .eq('id', document_id)
+        
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+    
+    result = query.single().execute()
     
     if not result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -164,12 +191,13 @@ async def get_requirements(
 ):
     """Get requirements for document."""
     # Verify ownership
-    doc_result = supabase.table('documents')\
-        .select('id')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+    # Verify ownership
+    query = supabase.table('documents').select('id').eq('id', document_id)
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+    doc_result = query.single().execute()
     
     if not doc_result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -191,12 +219,13 @@ async def get_match_summary(
 ):
     """Get match summary for document."""
     # Get document
-    doc_result = supabase.table('documents')\
-        .select('id, tender_name, file_name')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+    # Get document
+    query = supabase.table('documents').select('id, tender_name, file_name').eq('id', document_id)
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+    doc_result = query.single().execute()
     
     if not doc_result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -271,17 +300,18 @@ async def export_document(
     """Export document to DOCX."""
     
     # Get document
-    doc_result = supabase.table('documents')\
-        .select('id, tender_name, file_name')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+    query = supabase.table('documents').select('id, tender_name, file_name, tenant_id').eq('id', document_id)
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+    doc_result = query.single().execute()
     
     if not doc_result.data:
         raise HTTPException(status_code=404, detail="Document not found")
     
     doc = doc_result.data
+    tenant_id = doc.get('tenant_id')
     
     # Get requirements
     req_result = supabase.table('requirements')\
@@ -290,40 +320,65 @@ async def export_document(
         .order('extraction_order')\
         .execute()
     
-    # Get responses
+    # Get responses - Get ALL responses first
     resp_result = supabase.table('responses')\
         .select('*')\
         .eq('document_id', document_id)\
-        .eq('status', 'APPROVED')\
         .execute()
     
-    # Load company profile from config file
-    config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'company_profile.json')
-    
-    if os.path.exists(config_path):
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-            company_config = config.get('company', {})
-    else:
-        company_config = {}
+    # Fetch company profile from DB
+    company_profile_data = {}
+    if tenant_id:
+        try:
+            profile_res = supabase.table('company_profiles').select('*').eq('tenant_id', tenant_id).single().execute()
+            if profile_res.data:
+                company_profile_data = profile_res.data
+        except Exception:
+            pass
+
+    # Fallback to local config if still empty
+    if not company_profile_data:
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'company_profile.json')
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    company_profile_data = config.get('company', {})
+            except Exception:
+                pass
     
     company = CompanyProfile(
-        name=company_config.get('name', 'Your Company Name'),
-        tagline=company_config.get('tagline', 'Your Company Tagline'),
-        address=company_config.get('address', 'Company Address'),
-        phone=company_config.get('phone', '+91 XXXXXXXXXX'),
-        email=company_config.get('email', 'info@company.com'),
-        website=company_config.get('website', 'www.company.com'),
-        logo_path=company_config.get('logo_path'),
-        primary_color=company_config.get('primary_color', '#1e3a8a'),
-        accent_color=company_config.get('accent_color', '#3b82f6')
+        name=company_profile_data.get('legal_name') or company_profile_data.get('name', 'TechSolutions India Pvt Ltd'),
+        tagline=company_profile_data.get('tagline', 'Enterprise Digital Transformation Partners'),
+        address=company_profile_data.get('company_address') or company_profile_data.get('address', 'Level 5, Cyber Tower, IT Park, Mumbai - 400076, Maharashtra'),
+        phone=company_profile_data.get('contact_phone') or company_profile_data.get('phone', '+91 22 4567 8900'),
+        email=company_profile_data.get('contact_email') or company_profile_data.get('email', 'proposals@techsolutions.in'),
+        website=company_profile_data.get('website', 'www.techsolutions.in'),
+        logo_path=company_profile_data.get('logo_path'),
+        primary_color=company_profile_data.get('primary_color', '#0ea5e9'),
+        accent_color=company_profile_data.get('accent_color', '#6366f1')
     )
+    
+    # Prioritize Approved responses, then Drafts
+    all_reqs = req_result.data or []
+    all_resps = resp_result.data or []
+    final_responses = []
+    
+    for req in all_reqs:
+        # Check for approved
+        resp = next((r for r in all_resps if r['requirement_id'] == req['id'] and r['status'] == 'APPROVED'), None)
+        if not resp:
+            # Check for draft
+            resp = next((r for r in all_resps if r['requirement_id'] == req['id']), None)
+        
+        if resp:
+            final_responses.append(resp)
     
     exporter = get_exporter(company)
     docx_bytes = await exporter.export_to_docx(
         tender_name=doc.get('tender_name') or doc.get('file_name', 'Tender Response'),
-        responses=resp_result.data or [],
-        requirements=req_result.data or [],
+        responses=final_responses,
+        requirements=all_reqs,
         recipient_name=""  # Can be fetched from document metadata if available
     )
     
@@ -332,6 +387,7 @@ async def export_document(
         'document_id': document_id,
         'export_type': 'DOCX',
         'exported_by': user['id'],
+        'tenant_id': user.get('tenant_id')
     }).execute()
     
     filename = f"{doc.get('tender_name', 'tender-response')}.docx"

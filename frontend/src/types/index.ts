@@ -6,7 +6,10 @@ export type DocumentInsert = Database['public']['Tables']['documents']['Insert']
 export type DocumentStatus = Document['status'];
 
 // Requirement types
-export type Requirement = Database['public']['Tables']['requirements']['Row'];
+export type Requirement = Database['public']['Tables']['requirements']['Row'] & {
+    priority?: 'Mandatory' | 'Optional' | 'Highly Recommended';
+    tenant_id?: string;
+};
 export type RequirementCategory = Requirement['category'];
 
 // Response types
@@ -21,8 +24,22 @@ export type MatchSummary = Database['public']['Tables']['match_summaries']['Row'
 export type KnowledgeBaseItem = Database['public']['Tables']['knowledge_base']['Row'];
 
 // User types
-export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row'] & {
+    tenant_id?: string;
+};
 export type UserRole = UserProfile['role'];
+
+// Review Comments
+export interface ReviewComment {
+    id: string;
+    response_id: string;
+    user_id: string;
+    tenant_id?: string;
+    comment_text: string;
+    resolved: boolean;
+    created_at: string;
+    updated_at: string;
+}
 
 // API Response types
 export interface ApiResponse<T> {

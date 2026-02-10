@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import type { KnowledgeBaseItem } from '@/types';
 
 export default function KnowledgeBasePage() {
     const { t, language } = useI18n();
+    const router = useRouter();
     const [items, setItems] = useState<KnowledgeBaseItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -34,22 +36,41 @@ export default function KnowledgeBasePage() {
         category: '',
     });
 
+    const [userRole, setUserRole] = useState<string>('BID_WRITER');
+
     const supabase = createClient();
     const isRtl = language === 'ar';
 
-    // Set auth token for API client
     useEffect(() => {
-        const setToken = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-                apiClient.setAuthToken(session.access_token);
+        const initialize = async () => {
+            setLoading(true);
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    apiClient.setAuthToken(session.access_token);
+
+                    // Fetch Role
+                    const { data: profile } = await supabase
+                        .from('user_profiles')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    const role = (profile as any)?.role || 'BID_WRITER';
+                    setUserRole(role);
+
+                    if (['ADMIN', 'MANAGER'].includes(role)) {
+                        const data = await apiClient.getKnowledgeBase();
+                        setItems(data || []);
+                    }
+                }
+            } catch (error) {
+                console.error("Initialization failed:", error);
+            } finally {
+                setLoading(false);
             }
         };
-        setToken();
-    }, []);
-
-    useEffect(() => {
-        fetchItems();
+        initialize();
     }, []);
 
     const fetchItems = async () => {
@@ -141,6 +162,27 @@ export default function KnowledgeBasePage() {
     );
 
     const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[];
+
+    if (!loading && !['ADMIN', 'MANAGER'].includes(userRole)) {
+        return (
+            <DashboardLayout title={t('knowledgeBase')} subtitle="Restricted Data Center">
+                <Card className="p-20 text-center border-slate-200 bg-slate-50 shadow-inner rounded-[40px]">
+                    <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-8 border border-slate-100">
+                        <Database className="w-12 h-12 text-slate-200" />
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Institutional Knowledge Protected</h2>
+                    <p className="text-slate-500 mb-8 max-w-sm mx-auto font-medium leading-relaxed">
+                        Your current role (<strong>{userRole}</strong>) allows access to bid analysis and writing. Modifying company knowledge assets requires <strong>Manager</strong> or <strong>Admin</strong> authority.
+                    </p>
+                    <div className="flex justify-center gap-4">
+                        <Button variant="secondary" onClick={() => router.push('/dashboard')} className="rounded-xl px-8 border-slate-200">
+                            Return to Dashboard
+                        </Button>
+                    </div>
+                </Card>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout

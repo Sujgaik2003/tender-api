@@ -20,7 +20,8 @@ import {
     BarChart3,
     Zap,
     Target,
-    ArrowUpRight
+    ArrowUpRight,
+    Building2
 } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     const [recentDocuments, setRecentDocuments] = useState<Document[]>([]);
     const [matchRates, setMatchRates] = useState({ eligibility: 0, technical: 0, compliance: 0 });
     const [userName, setUserName] = useState('');
+    const [userRole, setUserRole] = useState<string>('BID_WRITER');
 
     useEffect(() => {
         loadDashboardData();
@@ -62,10 +64,13 @@ export default function DashboardPage() {
             if (user) {
                 const { data: profile } = await supabase
                     .from('user_profiles')
-                    .select('full_name')
+                    .select('full_name, role')
                     .eq('id', user.id)
                     .single();
-                setUserName((profile as any)?.full_name || user.user_metadata?.full_name || '');
+                if (profile) {
+                    setUserName((profile as any).full_name || user.user_metadata?.full_name || '');
+                    setUserRole((profile as any).role || 'BID_WRITER');
+                }
             }
 
             // Get documents
@@ -376,23 +381,49 @@ export default function DashboardPage() {
                         )}
                     </div>
 
-                    {/* Quick Upload CTA */}
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 via-primary-600 to-blue-600 p-6 shadow-xl shadow-primary-500/30 group">
-                        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-
-                        <div className="relative z-10">
-                            <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-5 border border-white/20">
-                                <Zap className="w-6 h-6 text-white" />
+                    {/* Enterprise Matrix Status Card - STAFF LOCK */}
+                    {['ADMIN', 'MANAGER'].includes(userRole) && (
+                        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-6 group hover:border-primary-300 transition-all">
+                            <div className={cn("flex items-center gap-3 mb-4", isRtl && "flex-row-reverse")}>
+                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary-50 transition-colors">
+                                    <Building2 className="w-5 h-5 text-slate-400 group-hover:text-primary-500" />
+                                </div>
+                                <div className={isRtl ? "text-right" : ""}>
+                                    <h4 className="text-sm font-black text-slate-900 tracking-tight uppercase">Enterprise Matrix</h4>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Profile Status</p>
+                                </div>
                             </div>
-                            <h4 className="font-black text-white text-xl mb-2 tracking-tight">{t('newDocument')}</h4>
-                            <Link href="/dashboard/upload">
-                                <button className="w-full py-3 px-4 rounded-xl bg-white text-primary-700 font-bold hover:bg-surface-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-black/10">
-                                    <Upload className="w-5 h-5" />
-                                    {t('uploadTitle')}
-                                </button>
+                            <p className="text-xs text-slate-500 font-medium mb-4 leading-relaxed">
+                                Complete your company profile and team matrix to unlock context-aware AI responses.
+                            </p>
+                            <Link href="/dashboard/settings/company">
+                                <Button variant="secondary" size="sm" className="w-full rounded-xl font-bold border-slate-200 hover:border-primary-200 hover:text-primary-600">
+                                    Setup Matrix
+                                    <ArrowUpRight className="w-3.5 h-3.5 ml-1.5" />
+                                </Button>
                             </Link>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Quick Upload CTA - HIDDEN FOR AUDITOR */}
+                    {userRole !== 'AUDITOR' && (
+                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 via-primary-600 to-blue-600 p-6 shadow-xl shadow-primary-500/30 group">
+                            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+
+                            <div className="relative z-10">
+                                <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-5 border border-white/20">
+                                    <Zap className="w-6 h-6 text-white" />
+                                </div>
+                                <h4 className="font-black text-white text-xl mb-2 tracking-tight">{t('newDocument')}</h4>
+                                <Link href="/dashboard/upload">
+                                    <button className="w-full py-3 px-4 rounded-xl bg-white text-primary-700 font-bold hover:bg-surface-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-black/10">
+                                        <Upload className="w-5 h-5" />
+                                        {t('uploadTitle')}
+                                    </button>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </DashboardLayout>

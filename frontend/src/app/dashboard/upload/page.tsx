@@ -8,11 +8,39 @@ import { FileUpload } from '@/components/upload/file-upload';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
+import type { Document, DocumentInsert } from '@/types';
 
 export default function UploadPage() {
     const router = useRouter();
     const [tenderName, setTenderName] = useState('');
+    const [userRole, setUserRole] = useState<string>('BID_WRITER');
+    const [loading, setLoading] = useState(true);
     const supabase = createClient();
+
+    React.useEffect(() => {
+        const checkRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                const role = (profile as any)?.role || 'BID_WRITER';
+                setUserRole(role);
+
+                if (role === 'AUDITOR') {
+                    toast.error('Compliance Access: Auditors cannot upload documents.');
+                    router.push('/dashboard');
+                }
+            }
+            setLoading(false);
+        };
+        checkRole();
+    }, [router, supabase]);
+
+    if (loading) return null;
 
     const handleUpload = async (file: File) => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -36,29 +64,33 @@ export default function UploadPage() {
         }
 
         // 2. Create document record
+        const insertData: DocumentInsert = {
+            user_id: user.id,
+            file_name: file.name,
+            file_path: filePath,
+            file_type: file.name.split('.').pop()?.toUpperCase() || 'PDF',
+            file_size_bytes: file.size,
+            tender_name: tenderName || file.name.replace(/\.[^/.]+$/, ''),
+            status: 'UPLOADED',
+            processing_progress: 0,
+        };
+
         const { data: doc, error: dbError } = await supabase
             .from('documents')
-            .insert({
-                user_id: user.id,
-                file_name: file.name,
-                file_path: filePath,
-                file_type: file.name.split('.').pop()?.toUpperCase() || 'PDF',
-                file_size_bytes: file.size,
-                tender_name: tenderName || file.name.replace(/\.[^/.]+$/, ''),
-                status: 'UPLOADED',
-                processing_progress: 0,
-            })
+            .insert(insertData as any)
             .select()
             .single();
 
-        if (dbError) {
+        if (dbError || !doc) {
             throw new Error('Failed to create document record');
         }
+
+        const typedDoc = doc as Document;
 
         // 3. Trigger backend processing
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            await fetch(`/api/backend/api/documents/${doc.id}/process`, {
+            await fetch(`/api/backend/api/documents/${typedDoc.id}/process`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -72,7 +104,7 @@ export default function UploadPage() {
         }
 
         toast.success('Document uploaded successfully!');
-        router.push(`/dashboard/documents/${doc.id}`);
+        router.push(`/dashboard/documents/${typedDoc.id}`);
     };
 
     return (

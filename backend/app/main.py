@@ -1,10 +1,13 @@
-"""
-FastAPI Main Application
-"""
+import sys
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import documents, responses, knowledge_base, humanize
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+from app.api import documents, responses, knowledge_base, humanize, discovery
+from app.api.company import routes as company_routes
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -30,8 +33,10 @@ app.add_middleware(
 app.include_router(documents.router)
 app.include_router(responses.router)
 app.include_router(knowledge_base.router)
+app.include_router(company_routes.router)
 app.include_router(humanize.router)  # Standalone AI Humanizer
 app.include_router(humanize.root_router) # Unified Endpoint
+app.include_router(discovery.router)
 
 
 @app.get("/health")

@@ -121,6 +121,18 @@ cp .env.example .env
 
 # Run server
 uvicorn app.main:app --reload
+
+#seed knowldgebase 
+python scripts/seed_knowledge_base.py   
+
+cd backend
+# 1. Activate Virtual Environment
+.\venv\Scripts\activate
+
+# 2. Start the Worker
+# Note: On Windows, we use --pool=solo to avoid thread locking issues
+celery -A app.core.celery_app worker --pool=solo --loglevel=info
+
 ```
 
 ### 5. Access Application

@@ -727,7 +727,7 @@ def calculate_ai_score(text: str) -> Tuple[float, List[str]]:
 async def llm_paraphrase(text: str, style: str, mode: str, attempt: int) -> str:
     """Use LLM for intelligent paraphrasing like Grammarly/QuillBot."""
     
-    if not settings.mistral_api_key:
+    if not settings.llm_api_key:
         # No LLM - return text with basic transforms
         result = text
         result, _ = apply_synonym_replacement(result, 0.4)
@@ -800,10 +800,10 @@ REWRITTEN DOCUMENT (matching original length of approximately {original_word_cou
             safe_max_tokens = max(1000, int(original_word_count * 2.5) + 500)
             
             response = await client.post(
-                f"{settings.mistral_api_url}/v1/chat/completions",
-                headers={"Authorization": f"Bearer {settings.mistral_api_key}"},
+                f"{settings.llm_api_url.rstrip('/')}/chat/completions",
+                headers={"Authorization": f"Bearer {settings.llm_api_key}"},
                 json={
-                    "model": settings.mistral_model,
+                    "model": settings.llm_model,
                     "messages": [{"role": "user", "content": prompt}],
                     "max_tokens": safe_max_tokens,
                     "temperature": 0.6 + (attempt * 0.08),
@@ -977,7 +977,7 @@ async def humanize_health():
     """Check API status."""
     return {
         "status": "healthy",
-        "llm_available": bool(settings.mistral_api_key),
+        "llm_available": bool(settings.llm_api_key),
         "synonyms_loaded": len(SYNONYMS),
         "phrases_loaded": len(PHRASE_PARAPHRASES),
         "modes": ["light", "balanced", "aggressive", "creative"],

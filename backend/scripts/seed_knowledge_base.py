@@ -312,7 +312,382 @@ SAMPLE_KB_ITEMS = [
         "title": "No Auto-Submission Policy",
         "content": "We confirm that no system functionality enables automatic submission of tenders, bids, or official responses without explicit human approval and verification. All submissions require manual authorization.",
         "category": "Compliance"
+    },
+
+    {
+    "title": "WCAG 2.1 Accessibility Compliance",
+    "content": "Our company delivers digital solutions fully compliant with WCAG 2.1 Level AA accessibility standards. We implement semantic HTML, ARIA labels, keyboard navigation, screen-reader compatibility, sufficient color contrast, resizable text, and accessible form validations. Accessibility is validated using automated tools such as Lighthouse and WAVE along with manual testing. The CMS enforces accessibility best practices including alt-text, heading hierarchy, and accessible media embeds.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Deployment Model – Cloud, On-Premise, Hybrid",
+    "content": "Our solutions are available in Cloud (SaaS), On-Premise, and Hybrid deployment models. Cloud deployments can be configured as single-tenant or multi-tenant and are hosted on secure, ISO-certified data centers. On-Premise deployments include detailed hardware and software specifications. Hybrid models allow sensitive data to remain on-premise while public-facing components operate on cloud infrastructure.",
+    "category": "Technical"
+  },
+  {
+    "title": "Content Management System & Media Library",
+    "content": "We provide a scalable and secure Content Management System that allows authorized users to manage content without technical expertise. The CMS includes a centralized media library for images, videos, and documents, role-based access control, versioning, approval workflows, and flexible content blocks while maintaining accessibility and branding standards.",
+    "category": "Technical"
+  },
+  {
+    "title": "SEO & Search Engine Optimisation Capability",
+    "content": "Our websites are built with SEO-first architecture. The CMS allows page-level control of meta titles, descriptions, canonical URLs, crawl/index rules, and search priority. We implement clean URLs, XML sitemaps, schema markup, image optimisation, lazy loading, caching, and CDN support. Performance is monitored using Google Lighthouse and PageSpeed Insights.",
+    "category": "Technical"
+  },
+  {
+    "title": "Google Analytics & Tag Manager Integration",
+    "content": "Our CMS supports seamless integration of Google Analytics and Google Tag Manager. Tracking codes can be added, edited, or removed directly via the CMS without developer dependency, enabling traffic analysis, conversion tracking, and performance monitoring in compliance with cookie consent requirements.",
+    "category": "Technical"
+  },
+  {
+    "title": "Cookie Consent & GDPR Compliance",
+    "content": "Our solutions include GDPR-compliant cookie consent mechanisms allowing users to accept or decline cookies. Tracking scripts are activated only after consent. Cookie preferences are securely stored and respected across sessions in compliance with GDPR and UK data protection laws.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Hosting, Availability & Scalability",
+    "content": "We provide cloud-based hosting with high availability architecture, SSD storage, CDN, load balancing, and auto-scaling to handle peak traffic. The infrastructure is designed for 99.9% uptime with continuous monitoring, automated backups, redundancy, and disaster recovery mechanisms.",
+    "category": "Technical"
+  },
+  {
+    "title": "Forms & Data Collection Capability",
+    "content": "Our platform supports creation of secure forms for exhibitor registrations, directory applications, and enquiries. Form data can be exported as CSV or Excel without CRM dependency. We also support embedding approved third-party solutions such as Typeform while ensuring GDPR compliance.",
+    "category": "Functional"
+  },
+  {
+    "title": "Directory Management with CSV Upload",
+    "content": "We provide scalable directory management with advanced filtering, search, and rich media profiles. Directory data can be uploaded and updated using CSV files for bulk updates, with individual records editable through the CMS. Images are uploaded separately and mapped to directory entries for efficient maintenance.",
+    "category": "Functional"
+  },
+  {
+    "title": "Events & What’s On Page Management",
+    "content": "Our system includes an events module allowing administrators to manage event listings with date, time, venue, and category tags such as food, entertainment, demonstrations, and family activities. Events can be filtered, searched, and displayed dynamically across the website.",
+    "category": "Functional"
+  },
+  {
+    "title": "Microsite & Sub-Site Architecture",
+    "content": "Our architecture supports microsites operating under the main website with independent navigation and sub-menus. Event microsites can maintain distinct branding and content while sharing the same CMS, hosting, and security framework as the parent website.",
+    "category": "Technical"
+  },
+  {
+    "title": "Training & Documentation Support",
+    "content": "We provide structured training for administrators, editors, and support teams through live sessions, recordings, and manuals. Documentation includes user guides, admin manuals, accessibility guidelines, and quick-reference materials. Post-training support ensures smooth adoption.",
+    "category": "Support"
+  },
+  {
+    "title": "Information Security & ISO Compliance",
+    "content": "Our organisation follows ISO 27001-aligned security practices including encryption at rest and in transit, role-based access control, audit logging, and secure hosting environments. We comply with GDPR, UK data protection regulations, and government security requirements.",
+    "category": "Security"
+  },
+  {
+    "title": "Environmental & Sustainability Commitment",
+    "content": "We support environmental sustainability through cloud-first delivery, energy-efficient hosting, reduced travel via remote delivery, and digital documentation. Our approach aligns with public sector net-zero and sustainability objectives.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Local Economic & Social Contribution",
+    "content": "We contribute to local economies by working with regional partners, supporting skills transfer, providing training opportunities, and enabling long-term capability building within client organisations.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Human Review & No Auto-Submission Assurance",
+    "content": "All tender responses and submissions are reviewed and approved by authorized personnel before submission. No automated system submits tenders or official responses without explicit human validation and sign-off.",
+    "category": "Compliance"
+  },
+  
+ 
+
+  {
+    "title": "WCAG 2.1 Accessibility Compliance",
+    "content": "Our digital solutions fully comply with WCAG 2.1 Level AA standards. We implement semantic HTML, ARIA attributes, keyboard navigation, screen reader compatibility, sufficient color contrast, resizable text, accessible forms, and captions for media. Accessibility is validated through automated tools (Lighthouse, WAVE) and manual testing. The CMS enforces accessibility by design, ensuring long-term compliance through content controls.",
+    "category": "Compliance"
+  },
+  {
+    "title": "GDPR & Data Protection Compliance",
+    "content": "We comply with GDPR and UK data protection regulations. Personal data is collected lawfully, processed for defined purposes, stored securely, and retained only for required durations. Users have rights to access, rectify, and delete their data. Data processing activities are documented and audited regularly.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Cookie Consent & Privacy Management",
+    "content": "Our solutions include GDPR-compliant cookie consent allowing users to accept or decline cookies. Tracking scripts are activated only after consent. Cookie preferences are securely stored and respected across sessions.",
+    "category": "Compliance"
+  },
+  {
+    "title": "ISO 27001 & Security Governance",
+    "content": "Our organisation follows ISO 27001-aligned information security practices, including encryption at rest and in transit, role-based access control, audit logging, vulnerability management, and secure hosting environments.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Environmental & Sustainability Commitment",
+    "content": "We support public-sector sustainability goals through cloud-first delivery, energy-efficient hosting providers, reduced travel via remote delivery, digital documentation, and responsible supplier selection aligned with net-zero commitments.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Local Economic & Social Contribution",
+    "content": "We support local economies by working with regional partners, enabling skills transfer, providing training opportunities, and building long-term digital capability within client organisations.",
+    "category": "Compliance"
+  },
+  {
+    "title": "Human Review & No Auto-Submission Policy",
+    "content": "All tender responses and official submissions are reviewed and approved by authorised personnel. No system submits responses automatically without explicit human validation and sign-off.",
+    "category": "Compliance"
+  },
+
+ 
+  {
+    "title": "Deployment Model – Cloud, On-Premise, Hybrid",
+    "content": "Our solution is available in Cloud (SaaS), On-Premise, and Hybrid deployment models. Cloud deployments support both single-tenant and multi-tenant architectures. Hybrid deployments allow sensitive data to remain on-premise while public-facing services run in the cloud.",
+    "category": "Technical"
+  },
+  {
+    "title": "Hosting, Availability & Scalability",
+    "content": "We provide high-availability cloud hosting with SSD storage, CDN, load balancing, auto-scaling, and monitoring. Infrastructure is designed for 99.9% uptime and handles traffic spikes during peak periods efficiently.",
+    "category": "Technical"
+  },
+  {
+    "title": "Technology Stack & Architecture",
+    "content": "Our solutions use modern, widely supported technologies with API-driven architecture, modular components, and cloud-ready design. This ensures scalability, security, and long-term maintainability.",
+    "category": "Technical"
+  },
+  {
+    "title": "CMS & Media Library Capability",
+    "content": "We provide a secure, scalable CMS with role-based access, versioning, approval workflows, and a central media library for documents, images, and videos. Content is managed using flexible content blocks rather than rigid templates.",
+    "category": "Technical"
+  },
+  {
+    "title": "SEO & Performance Optimisation",
+    "content": "Our CMS allows full SEO control including meta titles, descriptions, canonical URLs, crawl/index rules, short URLs, and schema markup. Performance is optimised through caching, CDN, image optimisation, and monitored using Lighthouse and PageSpeed Insights.",
+    "category": "Technical"
+  },
+  {
+    "title": "Analytics & Tag Management",
+    "content": "Google Analytics and Google Tag Manager can be added, edited, and managed directly through the CMS without developer intervention, supporting traffic analysis, conversion tracking, and performance monitoring.",
+    "category": "Technical"
+  },
+
+  {
+    "title": "Producer / Supplier Directory Management",
+    "content": "We provide scalable directory management with rich profiles, images, filters, search, and ‘where to buy’ information. Data can be uploaded and updated via CSV for bulk changes, with individual records editable through the CMS.",
+    "category": "Functional"
+  },
+  {
+    "title": "Events & What’s On Page Management",
+    "content": "Our platform includes an events module for managing activities with date, time, venue, and category tags such as food, entertainment, demonstrations, and family activities. Events are searchable, filterable, and dynamically displayed.",
+    "category": "Functional"
+  },
+  {
+    "title": "Microsite & Sub-Site Architecture",
+    "content": "Our architecture supports microsites operating under the main website with independent navigation and sub-menus. Event microsites maintain distinct branding while sharing the same CMS, hosting, and security framework.",
+    "category": "Functional"
+  },
+  {
+    "title": "Forms & Data Collection",
+    "content": "We support secure forms for applications, registrations, and enquiries. Form data can be exported as CSV or Excel without CRM dependency. Approved third-party tools such as Typeform can be embedded while maintaining GDPR compliance.",
+    "category": "Functional"
+  },
+  {
+    "title": "Social Media & Content Sharing",
+    "content": "All content supports sharing via email, social platforms, and WhatsApp. Open Graph and social metadata ensure correct previews when content is shared.",
+    "category": "Functional"
+  },
+
+ 
+
+  {
+    "title": "Implementation Methodology",
+    "content": "We follow a structured delivery approach covering discovery, design, development, testing, deployment, and post-launch support. Clear milestones, governance, and risk management ensure on-time delivery.",
+    "category": "Delivery"
+  },
+  {
+    "title": "Project Governance & Reporting",
+    "content": "Our governance model includes regular progress reporting, stakeholder reviews, issue escalation mechanisms, and quality assurance checkpoints throughout the project lifecycle.",
+    "category": "Delivery"
+  },
+  {
+    "title": "Timeline Commitment",
+    "content": "We confirm our ability to meet all delivery timelines specified in the tender, including phased launches and final go-live milestones.",
+    "category": "Delivery"
+  },
+
+
+
+  {
+    "title": "Training & Knowledge Transfer",
+    "content": "We provide role-based training for administrators, editors, and support staff through live sessions, recordings, and documentation. Optional accessibility and advanced CMS training can also be provided.",
+    "category": "Support"
+  },
+  {
+    "title": "Support, Maintenance & SLA",
+    "content": "We provide structured support and maintenance services including incident management, system monitoring, updates, and ongoing optimisation aligned with agreed SLAs.",
+    "category": "Support"
+  },
+
+  
+
+  {
+    "title": "User Access & Role Management",
+    "content": "Access is granted through role-based permissions aligned to job functions. The principle of least privilege is enforced, and all access actions are logged for audit purposes.",
+    "category": "Security"
+  },
+  {
+    "title": "Data Collection, Retention & Residency",
+    "content": "Data is collected only for defined purposes, retained in line with policy, and stored in approved geographic locations. No data is transferred outside agreed jurisdictions without consent.",
+    "category": "Security"
+  },
+
+ 
+
+  {
+    "title": "Licensing Model & Cost Structure",
+    "content": "We offer transparent licensing models including SaaS subscription or perpetual licensing depending on deployment. Costs are clearly itemised across implementation, licensing, hosting, training, and support.",
+    "category": "Commercial"
+  },
+  {
+    "title": "Value for Money & MEAT Evaluation",
+    "content": "Our proposals are structured to maximise quality and value under the Most Economically Advantageous Tender (MEAT) evaluation model, balancing cost efficiency with technical excellence.",
+    "category": "Commercial"
+  },
+
+  
+
+  {
+    "title": "Relevant Public Sector Experience",
+    "content": "We have delivered digital platforms and enterprise systems for government and public-sector organisations, including websites, ERP systems, and data-driven platforms, meeting accessibility, security, and compliance requirements.",
+    "category": "Experience"
+  },
+  {
+    "title": "Innovation & Added Value",
+    "content": "Beyond core requirements, we offer innovation through modular design, automation, analytics-driven insights, and scalable architectures that provide long-term value and adaptability.",
+    "category": "Experience"
+  }
+,
+ {
+        "title": "Answer – Specifications Compliance",
+        "content": (
+            "Yes, our solution meets all mandatory requirements outlined in the proposed "
+            "specifications. The platform is configurable, scalable, and designed to comply "
+            "with public-sector operational, security, and data protection standards. "
+            "Any configuration gaps can be addressed during implementation without impacting "
+            "delivery timelines or system stability."
+        ),
+        "category": "Tender Answer"
+    },
+
+    {
+        "title": "Answer – Deployment Model",
+        "content": (
+            "Our solution is available as Cloud (SaaS), On-Premise, and Hybrid deployments. "
+            "Cloud deployments support both single-tenant and multi-tenant architectures "
+            "and are hosted in secure, ISO-certified data centres. On-Premise deployments "
+            "include defined hardware and software specifications. Hybrid models allow "
+            "sensitive data to remain on-premise while public-facing services operate in the cloud."
+        ),
+        "category": "Tender Answer"
+    },
+
+    {
+        "title": "Answer – Implementation Approach",
+        "content": (
+            "The estimated implementation timeline is 12–16 weeks. We follow an Agile-based "
+            "delivery methodology with structured phases including discovery, configuration, "
+            "testing, UAT, and go-live. Key dependencies include availability of client stakeholders, "
+            "infrastructure readiness, and timely access to legacy data."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Training & Documentation",
+        "content": (
+            "We provide role-based training for administrators, operational users, and support staff. "
+            "Training is delivered through live sessions, recorded walkthroughs, and hands-on exercises. "
+            "Documentation includes user manuals, administrator guides, and quick reference materials."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Licensing Model & Costs",
+        "content": (
+            "Our licensing model is flexible and transparent, supporting SaaS subscription or "
+            "perpetual licensing depending on deployment. Costs are itemised across implementation, "
+            "user licences, hosting or infrastructure, training, and ongoing support. "
+            "No hidden or third-party costs apply."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – User Access & Licensing",
+        "content": (
+            "User access is managed using Role-Based Access Control (RBAC), ensuring permissions "
+            "are aligned to job roles and responsibilities. The principle of least privilege is enforced. "
+            "Licensing is based on named or concurrent users, depending on deployment preferences."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Data Collection & Retention",
+        "content": (
+            "Data is collected solely for operational purposes and processed in accordance with "
+            "data protection regulations. Retention periods align with organisational policies "
+            "and statutory requirements. Data is not transferred outside agreed jurisdictions "
+            "without explicit consent."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Hosting & Data Location",
+        "content": (
+            "Cloud hosting is provided through secure, high-availability data centres located "
+            "within approved jurisdictions. On-Premise deployments are fully hosted within "
+            "customer infrastructure. All hosting options support redundancy, backup, and disaster recovery."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Software Installation & Updates",
+        "content": (
+            "For cloud deployments, no client-side installation is required and updates are applied "
+            "centrally with minimal downtime. For on-premise or hybrid models, installer packages "
+            "and deployment guides are provided. Updates follow a controlled release and rollback process."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Innovation & Added Value",
+        "content": (
+            "In addition to core requirements, our solution offers workflow automation, advanced "
+            "reporting, analytics dashboards, API-based integrations, and modular expansion capabilities "
+            "to support future operational needs."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Public Sector References",
+        "content": (
+            "We have delivered comparable solutions for public-sector and government organisations, "
+            "including enterprise management systems and secure digital platforms. References can "
+            "be provided upon request in accordance with procurement guidelines."
+        ),
+        "category": "Technical"
+    },
+
+    {
+        "title": "Answer – Any Other Business",
+        "content": (
+            "We welcome further engagement to better understand operational workflows and future "
+            "requirements. Early collaboration will help ensure optimal system configuration "
+            "and long-term value delivery."
+        ),
+        "category": "Technical"
     }
+
 ]
 
 
@@ -321,7 +696,15 @@ def seed_knowledge_base():
     supabase = get_supabase()
     matcher = get_matcher()
     
-    print("Seeding knowledge base...")
+    # Get first tenant to associate data with
+    tenants = supabase.table('tenants').select('id').limit(1).execute()
+    tenant_id = tenants.data[0]['id'] if tenants.data else None
+    
+    if not tenant_id:
+        print("Error: No tenant found. Please log in to the dashboard first to create a default tenant.")
+        return
+
+    print(f"Seeding knowledge base for tenant: {tenant_id}...")
     
     for item in SAMPLE_KB_ITEMS:
         # Insert into database
@@ -331,6 +714,7 @@ def seed_knowledge_base():
             'category': item['category'],
             'version': 1,
             'is_active': True,
+            'tenant_id': tenant_id
         }).execute()
         
         if result.data:

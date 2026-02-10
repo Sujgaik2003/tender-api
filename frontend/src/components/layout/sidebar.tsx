@@ -17,6 +17,7 @@ import {
     ChevronRight,
     BarChart3,
     User,
+    Search,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
@@ -33,15 +34,18 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
 
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
+    const [userRole, setUserRole] = useState<string>('BID_WRITER');
 
     const navigation = [
         { name: t('dashboard'), originalName: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: t('upload'), originalName: 'Upload', href: '/dashboard/upload', icon: Upload },
+        { name: t('upload'), originalName: 'Upload', href: '/dashboard/upload', icon: Upload, roles: ['ADMIN', 'MANAGER', 'BID_WRITER'] },
         { name: t('documents'), originalName: 'Documents', href: '/dashboard/documents', icon: FileText },
-        { name: t('knowledgeBase'), originalName: 'Knowledge Base', href: '/dashboard/knowledge-base', icon: Database },
+        { name: t('knowledgeBase'), originalName: 'Knowledge Base', href: '/dashboard/knowledge-base', icon: Database, roles: ['ADMIN', 'MANAGER', 'AUDITOR'] },
         { name: t('analytics'), originalName: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+        { name: 'Tender Discovery', originalName: 'Discovery', href: '/dashboard/discovery', icon: Search, roles: ['ADMIN', 'MANAGER'] },
         { name: t('settings'), originalName: 'Settings', href: '/dashboard/settings', icon: Settings },
-    ];
+        { name: 'Enterprise Matrix', originalName: 'Company', href: '/dashboard/settings/company', icon: User, roles: ['ADMIN', 'MANAGER', 'AUDITOR'] },
+    ].filter(item => !item.roles || item.roles.includes(userRole));
 
     useEffect(() => {
         loadUser();
@@ -52,19 +56,16 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         if (user) {
             setUserEmail(user.email || '');
 
-            // Try to get profile from user_profiles table
             const { data: profile } = await supabase
                 .from('user_profiles')
-                .select('full_name')
+                .select('full_name, role')
                 .eq('id', user.id)
                 .single();
 
-            setUserName(
-                (profile as any)?.full_name ||
-                user.user_metadata?.full_name ||
-                user.email?.split('@')[0] ||
-                'User'
-            );
+            if (profile) {
+                setUserName((profile as any).full_name || user.email?.split('@')[0] || 'User');
+                setUserRole((profile as any).role || 'BID_WRITER');
+            }
         }
     };
 

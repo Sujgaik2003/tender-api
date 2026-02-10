@@ -22,6 +22,18 @@ from app.services.ai_detector import (
 
 settings = get_settings()
 
+REWRITE_PROMPT = """The previous response was flagged as having too high an AI score. 
+IMPORTANT: Write the response in {language}.
+
+Rewrite the text below. You MUST use more of the EXACT phrases and vocabulary from the ORIGINAL SOURCE CONTENT to lower the AI score while still following the style instructions.
+
+PREVIOUS (REJECTED):
+{text}
+
+ORIGINAL SOURCE:
+{kb_text}
+"""
+
 
 @dataclass
 class ProvenanceItem:
@@ -44,7 +56,7 @@ class ResponseComposer:
     
     def __init__(self):
         self.matcher = get_matcher()
-        self.mistral_url = settings.mistral_api_url
+        self.llm_url = settings.llm_api_url
         self.max_ai_percentage = settings.max_ai_percentage
         self.max_attempts = settings.max_regeneration_attempts
         
@@ -85,7 +97,11 @@ class ResponseComposer:
         matches: List[MatchResult],
         style: str = "professional",
         mode: str = "balanced",
-        tone: str = "professional"
+        tone: str = "professional",
+        priority: str = "Optional",
+        company_profile: Dict = None,
+        past_performance: List[Dict] = [],
+        team_profiles: List[Dict] = []
     ) -> ComposedResponse:
         """Compose professional tender response from matched KB content."""
         
@@ -111,7 +127,16 @@ class ResponseComposer:
         # If we have good KB content, try LLM refinement first
         if len(relevant_text) >= 30:
             # Try to refine with LLM if available (keeping under 30% AI)
-            refined = await self._refine_for_tender(requirement, relevant_text, mode=mode, tone=tone)
+            refined = await self._refine_for_tender(
+                requirement, 
+                relevant_text, 
+                mode=mode, 
+                tone=tone,
+                priority=priority,
+                company_profile=company_profile,
+                past_performance=past_performance,
+                team_profiles=team_profiles
+            )
             if refined:
                 print("[COMPOSER] Using LLM-refined response")
                 return refined # _refine_for_tender already calls _humanize
@@ -241,8 +266,8 @@ class ResponseComposer:
     ) -> str:
         """Generate minimal connective text between sections."""
         
-        # Skip LLM if not configured (placeholder check)
-        if "api.mistral.ai" in self.mistral_url and not settings.mistral_api_key:
+        # Skip LLM if not configured
+        if not settings.llm_api_key:
              return "Additionally,"
 
         prompt = f"""Connect these two paragraphs with a brief transition (max 20 words).
@@ -254,41 +279,31 @@ Paragraph 2: {after[:200]}
 
 Transition:"""
 
-        headers = {}
-        if settings.mistral_api_key:
-            headers["Authorization"] = f"Bearer {settings.mistral_api_key}"
+        headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # Fix: Mistral API uses /v1/chat/completions usually, but let's stick to user config
-                # If using official API, we need chat/completions structure or compatible endpoint
-                
-                endpoint = f"{self.mistral_url}/v1/chat/completions" if "api.mistral.ai" in self.mistral_url else f"{self.mistral_url}/v1/completions"
+                # Construct endpoint
+                url = self.llm_url
+                if not url.endswith('/chat/completions') and not url.endswith('/completions'):
+                    url = f"{url.rstrip('/')}/chat/completions"
                 
                 payload = {
-                    "model": settings.mistral_model,
+                    "model": settings.llm_model,
                     "max_tokens": min(max_tokens, 50),
                     "temperature": 0.3,
+                    "messages": [{"role": "user", "content": prompt}]
                 }
                 
-                if "chat" in endpoint:
-                    payload["messages"] = [{"role": "user", "content": prompt}]
-                else:
-                    payload["prompt"] = prompt
-                    payload["stop"] = ["\n", "."]
-
                 response = await client.post(
-                    endpoint,
+                    url,
                     json=payload,
                     headers=headers
                 )
                 
                 if response.status_code == 200:
                     result = response.json()
-                    if "chat" in endpoint:
-                        connector = result["choices"][0]["message"]["content"].strip()
-                    else:
-                        connector = result.get("choices", [{}])[0].get("text", "").strip()
+                    connector = result["choices"][0]["message"]["content"].strip()
                     
                     # Ensure it ends properly
                     if connector and not connector.endswith(('.', ',')):
@@ -296,10 +311,8 @@ Transition:"""
                     
                     return connector
         except Exception:
-            # Silently fail back to static connector
             pass
         
-        # Fallback connectors
         return "Additionally,"
     
     async def _generate_minimal_response(self, requirement: str) -> ComposedResponse:
@@ -428,16 +441,22 @@ Transition:"""
         requirement: str, 
         kb_text: str,
         mode: str = "balanced",
-        tone: str = "professional"
+        tone: str = "professional",
+        priority: str = "Optional",
+        company_profile: Dict = None,
+        past_performance: List[Dict] = [],
+        team_profiles: List[Dict] = []
     ) -> Optional[ComposedResponse]:
         """Refine KB content into a professional tender response."""
         
-        print(f"[REFINE] Mistral API Key present: {bool(settings.mistral_api_key)}")
-        print(f"[REFINE] Mode: {mode}, Tone: {tone}")
-        
-        if not settings.mistral_api_key:
+        settings = get_settings()
+        if not settings.llm_api_key:
             print("[REFINE] No API key, skipping LLM")
             return None  # No LLM available, skip refinement
+        
+        # ... existing logic ...
+        
+        # Update prompt logic (I will replace the whole method to be safe)
         
         # Mode and Tone specific instructions
         mode_instr = {
@@ -470,7 +489,7 @@ Transition:"""
             lang_instr = f"IMPORTANT: Write the response in {lang_name}."
 
         try:
-            headers = {"Authorization": f"Bearer {settings.mistral_api_key}"}
+            headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
             current_text = None
             
             # ATTEMPT LOOP (paraphrase until AI% < 30%)
@@ -479,15 +498,35 @@ Transition:"""
                 
                 # Adjust prompt for retries
                 if attempt == 0:
+                    profile_context = ""
+                    if company_profile:
+                        profile_context += f"\nCOMPANY: {company_profile.get('legal_name')}"
+                        profile_context += f"\nCAPABILITIES: {', '.join(company_profile.get('capabilities', []))}"
+                    
+                    if past_performance:
+                        pp_str = "\n".join([f"- {p['project_title']} for {p['client_name']}: {p['description'][:100]}..." for p in past_performance[:2]])
+                        profile_context += f"\nPAST PROJECTS:\n{pp_str}"
+                        
+                    if team_profiles:
+                        team_str = "\n".join([f"- {t['full_name']} ({t['designation']}): {t['bio_summary'][:100]}..." for t in team_profiles[:2]])
+                        profile_context += f"\nTEAM EXPERTS:\n{team_str}"
+                    
+                    priority_instr = ""
+                    if priority == "Mandatory":
+                        priority_instr = "- This is a MANDATORY requirement. Be extremely precise and confirming."
+                    
                     current_prompt = f"""You are an expert tender proposal writer. 
 {lang_instr}
-Rewrite the SOURCE CONTENT to directly answer the REQUIREMENT.
-                    
+Rewrite the SOURCE CONTENT to directly answer the REQUIREMENT. Use the COMPANY CONTEXT to prove our capability.
+
 REQUIREMENT:
 {requirement}
 
 SOURCE CONTENT:
 {kb_text}
+
+COMPANY CONTEXT:
+{profile_context}
 
 INSTRUCTIONS:
 - {mode_instr}
@@ -495,7 +534,9 @@ INSTRUCTIONS:
 - Language: You MUST use {lang_name}.
 - Be concise and direct (2-4 sentences max).
 - Answer ONLY what the requirement asks.
+- {priority_instr}
 - Do NOT add external marketing fluff.
+- Use the COMPANY CONTEXT facts to strengthen the response.
 - Maintain all technical facts and data from the SOURCE CONTENT.
 
 RESPONSE:"""
@@ -520,13 +561,18 @@ STYLE INSTRUCTIONS:
 REWRITE:"""
 
                 async with httpx.AsyncClient(timeout=30.0) as client:
+                    url = self.llm_url
+                    if not url.endswith('/chat/completions') and not url.endswith('/completions'):
+                        url = f"{url.rstrip('/')}/chat/completions"
+
+                    headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
                     response = await client.post(
-                        f"{self.mistral_url}/v1/chat/completions",
+                        url,
                         headers=headers,
                         json={
-                            "model": settings.mistral_model,
+                            "model": settings.llm_model,
                             "messages": [{"role": "user", "content": current_prompt}],
-                            "max_tokens": 200,
+                            "max_tokens": 400,
                             "temperature": 0.7 if attempt > 0 else 0.3,
                         }
                     )
@@ -546,19 +592,22 @@ REWRITE:"""
                         # Apply humanization
                         humanized = self._humanize(temp_composed, mode=mode)
                         ai_pct = humanized.ai_percentage
-                        current_text = humanized.text
                         
                         print(f"[REFINE] Attempt {attempt+1}: AI Score: {ai_pct:.1f}%")
+                        
+                        # Store current text for next attempt retry prompt
+                        current_text = raw_refined_text
                         
                         # Use successful result immediately
                         if ai_pct <= self.max_ai_percentage:
                             print("[REFINE] AI% acceptable! Returning response.")
                             return humanized
                         else:
-                            print(f"[REFINE] AI% {ai_pct:.1f}% > {self.max_ai_percentage}%. Retrying...")
+                            print(f"[REFINE] AI% {ai_pct:.1f}% > {self.max_ai_percentage}%. Retrying with stricter prompt...")
+                            # No need to set current_prompt here, the next iteration will do it at line 533
                     else:
-                        print(f"[REFINE] API Error: {response.status_code}")
-                        break
+                        print(f"[REFINE] API Error: {response.status_code} - {response.text}")
+                        continue
             
             # All attempts exhausted - return None to trigger KB fallback
             print("[REFINE] All attempts failed to meet AI% threshold.")

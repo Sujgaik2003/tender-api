@@ -58,12 +58,14 @@ class ProcessingPipeline:
             for req in requirements:
                 self.supabase.table('requirements').insert({
                     'document_id': document_id,
+                    'tenant_id': document.get('tenant_id'),
                     'requirement_text': req.text,
                     'category': req.category.value,
                     'subcategory': req.subcategory,
                     'confidence_score': req.confidence,
                     'page_number': req.page_number,
                     'extraction_order': req.order,
+                    'priority': req.priority,
                 }).execute()
             
             await asyncio.sleep(0.5)
@@ -91,6 +93,7 @@ class ProcessingPipeline:
                 for match in result.get('matches', [])[:3]:  # Top 3 matches
                     self.supabase.table('match_results').insert({
                         'document_id': document_id,
+                        'tenant_id': document.get('tenant_id'),
                         'requirement_id': result['requirement_id'],
                         'kb_item_id': match['kb_item_id'],
                         'match_percentage': result['match_percentage'],
@@ -106,6 +109,7 @@ class ProcessingPipeline:
             
             self.supabase.table('match_summaries').insert({
                 'document_id': document_id,
+                'tenant_id': document.get('tenant_id'),
                 'eligibility_match': summary_data['summary']['eligibility_match'],
                 'technical_match': summary_data['summary']['technical_match'],
                 'compliance_match': summary_data['summary']['compliance_match'],
@@ -161,3 +165,6 @@ async def process_document_async(document_id: str):
     """Process document in background."""
     pipeline = get_pipeline()
     await pipeline.process_document(document_id)
+
+# Alias for Celery task
+process_document = process_document_async

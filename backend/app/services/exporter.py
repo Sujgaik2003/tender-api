@@ -21,15 +21,15 @@ class CompanyProfile:
     
     def __init__(
         self,
-        name: str = "TenderAI Solutions",
-        tagline: str = "Intelligent Tender Response Automation",
-        address: str = "123 Business Park, Tech City\nState - 400001, India",
-        phone: str = "+91 98765 43210",
-        email: str = "info@tenderai.com",
-        website: str = "www.tenderai.com",
+        name: str = "TechSolutions India Pvt Ltd",
+        tagline: str = "Enterprise Digital Transformation Partners",
+        address: str = "Level 5, Cyber Tower, IT Park, Mumbai - 400076, Maharashtra",
+        phone: str = "+91 22 4567 8900",
+        email: str = "proposals@techsolutions.in",
+        website: str = "www.techsolutions.in",
         logo_path: Optional[str] = None,
-        primary_color: str = "#1e3a8a",  # Deep blue
-        accent_color: str = "#3b82f6",   # Bright blue
+        primary_color: str = "#0ea5e9",  # Sky blue
+        accent_color: str = "#6366f1",   # Indigo
     ):
         self.name = name
         self.tagline = tagline
@@ -164,8 +164,11 @@ class ExportService:
         # Company Logo placeholder (if logo path exists)
         if self.company.logo_path and os.path.exists(self.company.logo_path):
             try:
-                doc.add_picture(self.company.logo_path, width=Inches(2))
+                # Add logo with a bit more padding
+                doc.add_paragraph().paragraph_format.space_after = Pt(20)
+                doc.add_picture(self.company.logo_path, width=Inches(2.5))
                 doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                doc.add_paragraph().paragraph_format.space_after = Pt(20)
             except Exception:
                 pass
         
@@ -245,8 +248,9 @@ class ExportService:
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        contact_info = f"{self.company.address.replace(chr(10), ' | ')}"
-        run = p.add_run(contact_info)
+        # Clean up address for single line
+        addr = self.company.address.replace('\n', ' | ').replace('\r', '')
+        run = p.add_run(addr)
         run.font.size = Pt(9)
         run.font.color.rgb = self.color_muted
         

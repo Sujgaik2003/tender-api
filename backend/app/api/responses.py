@@ -26,12 +26,13 @@ async def get_responses(
 ):
     """Get responses for document."""
     # Verify document ownership
-    doc_result = supabase.table('documents')\
-        .select('id')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+    # Verify document ownership
+    query = supabase.table('documents').select('id').eq('id', document_id)
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+    doc_result = query.single().execute()
     
     if not doc_result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -56,12 +57,13 @@ async def generate_responses(
     """Generate draft responses for requirements (async - returns immediately)."""
     
     # Verify document ownership
-    doc_result = supabase.table('documents')\
-        .select('id')\
-        .eq('id', document_id)\
-        .eq('user_id', user['id'])\
-        .single()\
-        .execute()
+    # Verify document ownership
+    query = supabase.table('documents').select('id').eq('id', document_id)
+    if user.get('tenant_id'):
+        query = query.eq('tenant_id', user['tenant_id'])
+    else:
+        query = query.eq('user_id', user['id'])
+    doc_result = query.single().execute()
     
     if not doc_result.data:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -135,6 +137,7 @@ async def generate_responses(
         document_id=document_id,
         requirements=all_requirements,
         user_id=user['id'],
+        tenant_id=user.get('tenant_id'),
         response_style=request.response_style,
         mode=request.mode,
         tone=request.tone
@@ -151,6 +154,7 @@ async def process_response_generation(
     document_id: str,
     requirements: list,
     user_id: str,
+    tenant_id: str = None,
     response_style: str = "professional",
     mode: str = "balanced",
     tone: str = "professional"
@@ -161,6 +165,29 @@ async def process_response_generation(
     supabase = get_supabase()
     composer = get_composer()
     
+    # Fetch company profile context if tenant exists
+    company_profile = None
+    past_performance = []
+    team_profiles = []
+    
+    if tenant_id:
+        try:
+            profile_result = supabase.table('company_profiles').select('*').eq('tenant_id', tenant_id).single().execute()
+            if profile_result.data:
+                company_profile = profile_result.data
+            
+            # Fetch top 5 past performance items
+            pp_result = supabase.table('past_performance').select('*').eq('tenant_id', tenant_id).limit(5).execute()
+            past_performance = pp_result.data or []
+            
+            # Fetch top 5 team profiles
+            team_result = supabase.table('team_profiles').select('*').eq('tenant_id', tenant_id).limit(5).execute()
+            team_profiles = team_result.data or []
+            
+        except Exception as e:
+            print(f"[WARN] Context fetch failed: {e}")
+            pass # Continue with minimal context
+            
     for req in requirements:
         try:
             matches = req.get('match_results', [])
@@ -183,7 +210,11 @@ async def process_response_generation(
                 matches=match_objects,
                 style=response_style,
                 mode=mode,
-                tone=tone
+                tone=tone,
+                priority=req.get('priority', 'Optional'),
+                company_profile=company_profile,
+                past_performance=past_performance,
+                team_profiles=team_profiles
             )
             
             # Check if response already exists for this requirement
@@ -211,6 +242,7 @@ async def process_response_generation(
                     'status': 'DRAFT',
                     'version': 1,
                     'created_by': user_id,
+                    'tenant_id': tenant_id
                 }).execute()
                 
                 # Log AI percentage internally
@@ -244,8 +276,10 @@ async def update_response(
     """Update response text."""
     
     # Get response and verify access
+    # Get response and verify access
+    # RLS handles tenant isolation, but we verify ownership logic
     resp_result = supabase.table('responses')\
-        .select('*, documents!inner(user_id)')\
+        .select('*, documents!inner(user_id, tenant_id)')\
         .eq('id', response_id)\
         .single()\
         .execute()
@@ -253,11 +287,18 @@ async def update_response(
     if not resp_result.data:
         raise HTTPException(status_code=404, detail="Response not found")
     
-    if resp_result.data['documents']['user_id'] != user['id']:
+    if user.get('tenant_id'):
+        if resp_result.data['documents'].get('tenant_id') != user['tenant_id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif resp_result.data['documents']['user_id'] != user['id']:
         raise HTTPException(status_code=403, detail="Access denied")
     
     if resp_result.data['status'] not in ['DRAFT', 'PENDING_REVIEW']:
         raise HTTPException(status_code=400, detail="Cannot edit approved response")
+    
+    # Role Check: Auditor cannot edit
+    if user.get('role') == 'AUDITOR':
+        raise HTTPException(status_code=403, detail="Auditors have read-only access")
     
     # Update
     update_data = {}
@@ -284,8 +325,9 @@ async def submit_for_review(
     """Submit response for review."""
     
     # Verify access
+    # Verify access
     resp_result = supabase.table('responses')\
-        .select('*, documents!inner(user_id)')\
+        .select('*, documents!inner(user_id, tenant_id)')\
         .eq('id', response_id)\
         .single()\
         .execute()
@@ -293,11 +335,18 @@ async def submit_for_review(
     if not resp_result.data:
         raise HTTPException(status_code=404, detail="Response not found")
     
-    if resp_result.data['documents']['user_id'] != user['id']:
+    if user.get('tenant_id'):
+        if resp_result.data['documents'].get('tenant_id') != user['tenant_id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif resp_result.data['documents']['user_id'] != user['id']:
         raise HTTPException(status_code=403, detail="Access denied")
     
     if resp_result.data['status'] != 'DRAFT':
         raise HTTPException(status_code=400, detail="Response already submitted")
+    
+    # Role Check: Auditor cannot submit
+    if user.get('role') == 'AUDITOR':
+        raise HTTPException(status_code=403, detail="Auditors cannot submit responses")
     
     # Update status
     result = supabase.table('responses')\
@@ -307,6 +356,17 @@ async def submit_for_review(
         })\
         .eq('id', response_id)\
         .execute()
+    
+    # Log workflow history
+    supabase.table('workflow_history').insert({
+        'entity_type': 'response',
+        'entity_id': response_id,
+        'tenant_id': user.get('tenant_id'),
+        'old_status': resp_result.data['status'],
+        'new_status': 'PENDING_REVIEW',
+        'changed_by': user['id'],
+        'change_reason': 'Submitted for review'
+    }).execute()
     
     return {"message": "Submitted for review", "response": result.data[0]}
 
@@ -332,6 +392,11 @@ async def approve_response(
     if resp_result.data['status'] not in ['DRAFT', 'PENDING_REVIEW']:
         raise HTTPException(status_code=400, detail="Response already processed")
     
+    # Role Check: Only Admin or Manager can approve
+    user_role = user.get('role', 'USER')
+    if user_role not in ['ADMIN', 'MANAGER']:
+        raise HTTPException(status_code=403, detail="Only Managers or Admins can approve responses")
+    
     # Approve
     result = supabase.table('responses')\
         .update({
@@ -342,5 +407,99 @@ async def approve_response(
         })\
         .eq('id', response_id)\
         .execute()
+        
+    # Log workflow history
+    supabase.table('workflow_history').insert({
+        'entity_type': 'response',
+        'entity_id': response_id,
+        'tenant_id': user.get('tenant_id'),
+        'old_status': resp_result.data['status'],
+        'new_status': 'APPROVED',
+        'changed_by': user['id'],
+        'change_reason': 'Approved by reviewer'
+    }).execute()
     
     return {"message": "Response approved", "response": result.data[0]}
+
+
+# --- Review Comments ---
+
+@router.get("/responses/{response_id}/comments")
+async def get_response_comments(
+    response_id: str,
+    user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Get comments for a response."""
+    result = supabase.table('review_comments')\
+        .select('*')\
+        .eq('response_id', response_id)\
+        .order('created_at')\
+        .execute()
+    return result.data
+
+@router.post("/responses/{response_id}/comments")
+async def add_response_comment(
+    response_id: str,
+    comment_data: dict,
+    user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Add a comment to a response."""
+    result = supabase.table('review_comments').insert({
+        'response_id': response_id,
+        'user_id': user['id'],
+        'tenant_id': user.get('tenant_id'),
+        'comment_text': comment_data.get('comment_text'),
+        'resolved': False
+    }).execute()
+    return result.data[0]
+
+@router.post("/responses/comments/{comment_id}/resolve")
+async def resolve_comment(
+    comment_id: str,
+    user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Resolve a comment."""
+    result = supabase.table('review_comments')\
+        .update({'resolved': True})\
+        .eq('id', comment_id)\
+        .execute()
+    return result.data[0]
+@router.delete("/responses/{response_id}")
+async def delete_response(
+    response_id: str,
+    user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Delete a response."""
+    # Verify access
+    resp_result = supabase.table('responses')\
+        .select('*, documents!inner(user_id, tenant_id)')\
+        .eq('id', response_id)\
+        .single()\
+        .execute()
+    
+    if not resp_result.data:
+        raise HTTPException(status_code=404, detail="Response not found")
+    
+    if user.get('tenant_id'):
+        if resp_result.data['documents'].get('tenant_id') != user['tenant_id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif resp_result.data['documents']['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Delete match results first (due to FK)
+    supabase.table('match_results').delete().eq('requirement_id', resp_result.data['requirement_id']).execute()
+    
+    # Delete AI logs
+    supabase.table('ai_percentage_log').delete().eq('response_id', response_id).execute()
+    
+    # Delete comments
+    supabase.table('review_comments').delete().eq('response_id', response_id).execute()
+    
+    # Delete the response
+    supabase.table('responses').delete().eq('id', response_id).execute()
+    
+    return {"status": "success", "message": "Response deleted"}

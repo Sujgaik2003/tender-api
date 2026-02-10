@@ -43,6 +43,7 @@ export default function DocumentDetailPage() {
     const searchParams = useSearchParams();
     const initialTab = (searchParams.get('tab') as TabType) || 'analysis';
     const [activeTab, setTabState] = useState<TabType>(initialTab);
+    const [userRole, setUserRole] = useState<string>('BID_WRITER');
 
     const setActiveTab = (tab: TabType) => {
         setTabState(tab);
@@ -58,7 +59,21 @@ export default function DocumentDetailPage() {
     const isRtl = language === 'ar';
 
     useEffect(() => {
-        fetchDocument();
+        const initialize = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+                apiClient.setAuthToken(session.access_token);
+                // Get role
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+                if (profile) setUserRole((profile as any).role);
+            }
+            fetchDocument();
+        };
+        initialize();
 
         // Realtime subscription for document updates
         const documentChannel = supabase
@@ -240,6 +255,16 @@ export default function DocumentDetailPage() {
         }
     };
 
+    const handleDeleteResponse = async (responseId: string) => {
+        try {
+            await apiClient.deleteResponse(responseId);
+            toast.success('Response deleted');
+            await fetchResponses();
+        } catch (error) {
+            toast.error('Delete failed');
+        }
+    };
+
     const handleExport = async () => {
         toast.loading('Exporting...');
         try {
@@ -314,7 +339,7 @@ export default function DocumentDetailPage() {
 
                     {isReady && (
                         <div className={cn("flex items-center gap-3", isRtl && "flex-row-reverse")}>
-                            {responses.length === 0 && (
+                            {responses.length === 0 && userRole !== 'AUDITOR' && (
                                 <Button
                                     variant="secondary"
                                     onClick={handleGenerateResponses}
@@ -450,15 +475,17 @@ export default function DocumentDetailPage() {
                                                     {t('noResponsesYet')}
                                                 </h3>
                                                 <p className="text-surface-500 mb-8 max-w-sm mx-auto font-medium">
-                                                    {t('generateDrafts')}
+                                                    {userRole === 'AUDITOR' ? 'This document is currently pending technical response generation by a Bid Writer.' : t('generateDrafts')}
                                                 </p>
-                                                <Button
-                                                    onClick={handleGenerateResponses}
-                                                    isLoading={generating}
-                                                    className="px-10 rounded-xl shadow-xl shadow-primary-500/20"
-                                                >
-                                                    {t('prepareResponses')}
-                                                </Button>
+                                                {userRole !== 'AUDITOR' && (
+                                                    <Button
+                                                        onClick={handleGenerateResponses}
+                                                        isLoading={generating}
+                                                        className="px-10 rounded-xl shadow-xl shadow-primary-500/20"
+                                                    >
+                                                        {t('prepareResponses')}
+                                                    </Button>
+                                                )}
                                             </div>
                                         )}
                                     </Card>
@@ -470,7 +497,9 @@ export default function DocumentDetailPage() {
                                         onSubmit={handleSubmitResponse}
                                         onApprove={handleApproveResponse}
                                         onRegenerate={handleRegenerateResponse}
-                                        canApprove={true}
+                                        onDelete={handleDeleteResponse}
+                                        canApprove={['ADMIN', 'MANAGER'].includes(userRole)}
+                                        readOnly={userRole === 'AUDITOR'}
                                     />
                                 )}
                             </>
