@@ -23,6 +23,7 @@ class ApiClient {
 
         const requestHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
+            'bypass-tunnel-reminder': 'true',
             ...headers,
         };
 
