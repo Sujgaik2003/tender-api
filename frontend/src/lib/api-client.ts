@@ -130,6 +130,7 @@ class ApiClient {
             method: 'POST',
             headers: {
                 'Authorization': this.authToken ? `Bearer ${this.authToken}` : '',
+                'bypass-tunnel-reminder': 'true',
             },
         });
 
