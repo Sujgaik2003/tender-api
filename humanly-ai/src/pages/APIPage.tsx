@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -6,6 +7,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export function APIPage() {
     useTranslation()
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     const endpoints = [
         {
@@ -56,13 +58,50 @@ export function APIPage() {
                                 </Button>
                             </Link>
                             <Link to="/auth/signup">
-                                <Button variant="primary" size="sm">
+                                <Button variant="primary" size="sm" className="hidden sm:inline-flex">
                                     Get Started
                                 </Button>
                             </Link>
+                            {/* Mobile menu button */}
+                            <button
+                                className="sm:hidden p-2 text-surface-200 hover:text-white transition-colors"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {isMobileMenuOpen ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                    )}
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
+
+                {/* Mobile Menu */}
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="sm:hidden absolute top-full left-0 right-0 glass border-b border-surface-800/50 p-4 space-y-4"
+                    >
+                        <div className="flex flex-col gap-3">
+                            <Link to="/api-docs" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">API & Devs</Button>
+                            </Link>
+                            <Link to="/#pricing" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">Pricing</Button>
+                            </Link>
+                            <Link to="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">Sign In</Button>
+                            </Link>
+                            <Link to="/auth/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="primary" className="w-full justify-start">Get Started</Button>
+                            </Link>
+                        </div>
+                    </motion.div>
+                )}
             </nav>
 
             <div className="max-w-5xl mx-auto mt-12">

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -7,6 +8,8 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export function LandingPage() {
     const { t } = useTranslation()
+
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     const features = t('landing.features.items', { returnObjects: true }) as Array<{ title: string; description: string }>
     const steps = t('landing.howItWorks.steps', { returnObjects: true }) as Array<{ number: string; title: string; description: string }>
@@ -55,9 +58,46 @@ export function LandingPage() {
                                     {t('landing.hero.ctaPrimary')}
                                 </Button>
                             </Link>
+                            {/* Mobile menu button */}
+                            <button
+                                className="sm:hidden p-2 text-surface-200 hover:text-white transition-colors"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {isMobileMenuOpen ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                    )}
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
+
+                {/* Mobile Menu */}
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="sm:hidden absolute top-full left-0 right-0 glass border-b border-surface-800/50 p-4 space-y-4"
+                    >
+                        <div className="flex flex-col gap-3">
+                            <Link to="/api-docs" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">API & Devs</Button>
+                            </Link>
+                            <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">{t('landing.pricing.title', 'Pricing')}</Button>
+                            </a>
+                            <Link to="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">{t('auth.login.submit')}</Button>
+                            </Link>
+                            <Link to="/auth/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button variant="primary" className="w-full justify-start">{t('landing.hero.ctaPrimary')}</Button>
+                            </Link>
+                        </div>
+                    </motion.div>
+                )}
             </nav>
 
             {/* Hero Section */}
@@ -76,11 +116,11 @@ export function LandingPage() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h1 className="text-5xl lg:text-6xl font-display font-bold leading-tight mb-6">
+                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 mt-10 lg:mt-0">
                                 {t('landing.hero.title')}{' '}
-                                <span className="text-gradient">{t('landing.hero.titleHighlight')}</span>
+                                <span className="text-gradient block sm:inline">{t('landing.hero.titleHighlight')}</span>
                             </h1>
-                            <p className="text-xl text-surface-300 mb-8 leading-relaxed">
+                            <p className="text-lg sm:text-xl text-surface-300 mb-8 leading-relaxed max-w-2xl">
                                 {t('landing.hero.subtitle')}
                             </p>
                             <div className="flex flex-wrap gap-4">
@@ -107,7 +147,7 @@ export function LandingPage() {
                             transition={{ duration: 0.6, delay: 0.2 }}
                             className="relative"
                         >
-                            <div className="aspect-square max-w-lg mx-auto">
+                            <div className="aspect-square w-full max-w-sm lg:max-w-lg mx-auto">
                                 <Avatar showMessage={false} className="h-full" />
                             </div>
                         </motion.div>

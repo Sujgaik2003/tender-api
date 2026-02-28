@@ -202,16 +202,16 @@ export function Dashboard() {
                             </Link>
                             <LanguageSwitcher />
                             {/* Plan Badge */}
-                            <div className="px-3 py-1.5 rounded-full bg-surface-800 border border-surface-700 text-sm">
+                            <div className="px-3 py-1.5 rounded-full bg-surface-800 border border-surface-700 text-xs sm:text-sm">
                                 {userPlan.type === 'pro' ? (
                                     <span className="text-primary-400">{t('dashboard.plan.pro')}</span>
                                 ) : (
                                     <span className="text-surface-300">
-                                        {t('dashboard.plan.free')} • {getRemainingUploads()} {t('dashboard.upload.uploadsRemaining')}
+                                        {t('dashboard.plan.free')} <span className="hidden sm:inline">• {getRemainingUploads()} {t('dashboard.upload.uploadsRemaining')}</span>
                                     </span>
                                 )}
                                 {userPlan.type === 'free' && (
-                                    <Button variant="secondary" size="sm" onClick={() => setShowPaymentModal(true)}>
+                                    <Button variant="secondary" size="sm" className="hidden sm:inline-flex ml-2" onClick={() => setShowPaymentModal(true)}>
                                         Upgrade
                                     </Button>
                                 )}
@@ -235,9 +235,9 @@ export function Dashboard() {
 
             {/* Main Content - 3 Column Layout */}
             <main className="max-w-7xl mx-auto px-6 py-8">
-                <div className="grid lg:grid-cols-12 gap-6">
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
                     {/* Left Column - Avatar */}
-                    <div className="lg:col-span-3">
+                    <div className="lg:col-span-3 order-3 lg:order-1 mt-4 lg:mt-0">
                         <Card className="sticky top-24" padding="none">
                             <div className="p-4 border-b border-surface-800">
                                 <h2 className="font-semibold text-lg">AI Assistant</h2>
@@ -249,7 +249,7 @@ export function Dashboard() {
                     </div>
 
                     {/* Center Column - Upload */}
-                    <div className="lg:col-span-5">
+                    <div className="lg:col-span-5 order-1 lg:order-2">
                         <Card padding="lg">
                             <h2 className="text-xl font-semibold mb-6">{t('dashboard.upload.title')}</h2>
 
@@ -479,7 +479,7 @@ export function Dashboard() {
                     </div>
 
                     {/* Right Column - Output */}
-                    <div className="lg:col-span-4">
+                    <div className="lg:col-span-4 order-2 lg:order-3 mt-4 lg:mt-0">
                         <Card padding="lg">
                             <h2 className="text-xl font-semibold mb-6">{t('dashboard.output.title')}</h2>
 
